@@ -1,0 +1,7 @@
+places-limit: 5
+
+enable-cooldown: true
+cooldown: 60
+
+enable-back: true
+back-expire: 300

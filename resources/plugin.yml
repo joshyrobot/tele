@@ -1,0 +1,12 @@
+main: dev.nulprit.tele.Tele
+name: tele
+version: 0.1
+api-version: 1.15
+
+commands:
+  go:
+    description: Teleports you to a saved destination
+    usage: /<command> [name]
+  set:
+    description: Saves your current location
+    usage: /<command> [name]
