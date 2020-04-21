@@ -1,7 +1,13 @@
+redis:
+  host: localhost
+  port: 6379
+  auth:
+  prefix: tele
+
 places-limit: 5
 
-enable-cooldown: true
 cooldown: 60
 
-enable-back: true
-back-expire: 300
+back:
+  enabled: true
+  expire: 300

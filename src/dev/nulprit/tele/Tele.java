@@ -5,6 +5,7 @@ import java.util.Set;
 
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Jedis;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.entity.Player;
@@ -25,7 +26,11 @@ public class Tele extends JavaPlugin {
 	public void onEnable() {
 		this.saveDefaultConfig();
 
-		pool = new JedisPool("localhost");
+		String host = config.getString("redis.host");
+		int port = config.getInt("redis.port");
+		String auth = config.getString("redis.auth");
+
+		pool = new JedisPool(new GenericObjectPoolConfig(), host, port, 60, auth);
 
 		this.getCommand("go").setExecutor(new GoCommand(this));
 		this.getCommand("go").setTabCompleter(new PlacesCompleter(this, true));
@@ -57,15 +62,18 @@ public class Tele extends JavaPlugin {
 		return new Location(world, x, y, z, pitch, yaw);
 	}
 
+	private String buildPath(Player p, String part) {
+		return config.getString("redis.prefix") + ":" + p.getUniqueId() + ":" + part;
+	}
+
 	public Long cooldown(Player p) {
 		try (Jedis jedis = pool.getResource()) {
-			Long result = jedis.ttl("tele:" + p.getUniqueId() + ":cooldown");
+			String path = buildPath(p, "cooldown");
+			Long result = jedis.ttl(path);
 
 			if (result == -1) return Long.MAX_VALUE; // no expiry, max length
 			if (result == -2 || result == 0) { // nonexistent or about to expire
-				if (config.getInt("cooldown") > 0) {
-					jedis.setex("tele:" + p.getUniqueId() + ":cooldown", config.getInt("cooldown"), "");
-				}
+				jedis.setex(path, config.getInt("cooldown"), "");
 				return 0l;
 			}
 			return result;
@@ -77,7 +85,7 @@ public class Tele extends JavaPlugin {
 
 	public Location getBackLocation(Player p) {
 		try (Jedis jedis = pool.getResource()) {
-			String back = jedis.get("tele:" + p.getUniqueId() + ":back");
+			String back = jedis.get(buildPath(p, "back"));
 			if (back == null) return null;
 			return decodeLocation(back);
 		} catch (Exception e) {
@@ -88,7 +96,7 @@ public class Tele extends JavaPlugin {
 
 	public Set<String> getPlaceNames(Player p) {
 		try (Jedis jedis = pool.getResource()) {
-			return jedis.hkeys("tele:" + p.getUniqueId() + ":places");
+			return jedis.hkeys(buildPath(p, "places"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return Collections.<String>emptySet();
@@ -97,7 +105,7 @@ public class Tele extends JavaPlugin {
 
 	public Long getPlaceCount(Player p) {
 		try (Jedis jedis = pool.getResource()) {
-			return jedis.hlen("tele:" + p.getUniqueId() + ":places");
+			return jedis.hlen(buildPath(p, "places"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return 0l;
@@ -106,7 +114,7 @@ public class Tele extends JavaPlugin {
 
 	public Location getPlace(Player p, String name) {
 		try (Jedis jedis = pool.getResource()) {
-			String place = jedis.hget("tele:" + p.getUniqueId() + ":places", name);
+			String place = jedis.hget(buildPath(p, "places"), name);
 			if (place == null) return null;
 			return decodeLocation(place);
 		} catch (Exception e) {
@@ -118,22 +126,22 @@ public class Tele extends JavaPlugin {
 	public void setPlace(Player p, String name, Location place) {
 		try (Jedis jedis = pool.getResource()) {
 			String encoded = encodeLocation(place);
-			jedis.hset("tele:" + p.getUniqueId() + ":places", name, encoded);
+			jedis.hset(buildPath(p, "places"), name, encoded);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
 	public void teleport(Player p, Location place) {
-		if (config.getBoolean("enable-back")) {
+		if (config.getBoolean("back.enabled")) {
 			try (Jedis jedis = pool.getResource()) {
 				String back = encodeLocation(p.getLocation());
 
-				int expire = config.getInt("back-expire");
+				int expire = config.getInt("back.expire");
 				if (expire > 0) {
-					jedis.setex("tele:" + p.getUniqueId() + ":back", expire, back);
+					jedis.setex(buildPath(p, "back"), expire, back);
 				} else {
-					jedis.set("tele:" + p.getUniqueId() + ":back", back);
+					jedis.set(buildPath(p, "back"), back);
 				}
 			} catch (Exception e) {
 				e.printStackTrace();

@@ -24,13 +24,9 @@ import dev.nulprit.tele.Tele;
 
 public class SetCommand implements CommandExecutor {
 	private Tele plugin;
-	private int limit;
 
 	public SetCommand(Tele plugin) {
 		this.plugin = plugin;
-		limit = plugin.config.getInt("places-limit");
-
-		if (limit == 0) limit = Integer.MAX_VALUE;
 	}
 
 	@Override
@@ -47,7 +43,8 @@ public class SetCommand implements CommandExecutor {
 		String name = args[0];
 
 		Long count = plugin.getPlaceCount(player);
-		if (count >= limit) {
+		Long limit = plugin.config.getLong("places-limit");
+		if (count >= limit && limit > 0) {
 			player.sendMessage(String.format("You have too many places saved (%d out of the %d allowed)", count, limit));
 			return true;
 		}

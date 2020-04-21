@@ -5,8 +5,8 @@ api-version: 1.15
 
 commands:
   go:
-    description: Teleports you to a saved destination
+    description: Teleports you to a saved destination.
     usage: /<command> [name]
   set:
-    description: Saves your current location
+    description: Saves your current location.
     usage: /<command> [name]

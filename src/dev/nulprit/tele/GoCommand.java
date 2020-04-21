@@ -24,13 +24,9 @@ import dev.nulprit.tele.Tele;
 
 public class GoCommand implements CommandExecutor {
 	private Tele plugin;
-	private boolean cooldownEnabled;
-	private boolean backEnabled;
 
 	public GoCommand(Tele plugin) {
 		this.plugin = plugin;
-		cooldownEnabled = plugin.config.getBoolean("enable-cooldown");
-		backEnabled = plugin.config.getBoolean("enable-back");
 	}
 
 	@Override
@@ -40,18 +36,6 @@ public class GoCommand implements CommandExecutor {
 			return false;
 		}
 		Player player = (Player) sender;
-
-		if (cooldownEnabled) {
-			Long cooldown = plugin.cooldown(player);
-			if (cooldown > 0) {
-				if (cooldown == Long.MAX_VALUE) {
-					player.sendMessage("You are on indefinite cooldown for this command");
-				} else {
-					player.sendMessage("You must wait " + cooldown + " seconds to use this command again");
-				}
-				return true;
-			}
-		}
 
 		if (args.length == 0) {
 			ComponentBuilder message = new ComponentBuilder();
@@ -73,7 +57,7 @@ public class GoCommand implements CommandExecutor {
 			}
 			message.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, bed_tooltip.create()));
 
-			if (backEnabled) {
+			if (plugin.config.getBoolean("back.enabled")) {
 				// Create back button
 				Location back = plugin.getBackLocation(player);
 				message.append("\n - ").color(ChatColor.RESET);
@@ -112,6 +96,18 @@ public class GoCommand implements CommandExecutor {
 			return false;
 		}
 		String name = args[0];
+
+		if (plugin.config.getInt("cooldown") > 0) {
+			Long cooldown = plugin.cooldown(player);
+			if (cooldown > 0) {
+				if (cooldown == Long.MAX_VALUE) {
+					player.sendMessage("You are on indefinite cooldown for this command");
+				} else {
+					player.sendMessage("You must wait " + cooldown + " seconds to use this command again");
+				}
+				return true;
+			}
+		}
 
 		if (name.equals("bed")) {
 			Location bed = player.getBedSpawnLocation();

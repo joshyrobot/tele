@@ -13,7 +13,6 @@ import org.bukkit.entity.Player;
 public class PlacesCompleter implements TabCompleter {
 	private Tele plugin;
 	private boolean includeReserved;
-	List<String> SubCommands = new ArrayList<String>();
 
 	public PlacesCompleter(Tele plugin, boolean includeReserved) {
 		this.plugin = plugin;
@@ -22,11 +21,12 @@ public class PlacesCompleter implements TabCompleter {
 
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
-		if (args.length > 1) return null;
-		if (!(sender instanceof Player)) return null;
+		List<String> suggestions = new ArrayList<String>();
+
+		if (!(sender instanceof Player)) return suggestions;
 		Player player = (Player) sender;
 
-		List<String> suggestions = new ArrayList<String>();
+		if (args.length > 1) return suggestions;
 
 		if (includeReserved) {
 			suggestions.add("bed");
