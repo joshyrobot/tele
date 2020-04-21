@@ -17,6 +17,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import dev.nulprit.tele.GoCommand;
 import dev.nulprit.tele.SetCommand;
 import dev.nulprit.tele.PlacesCompleter;
+import dev.nulprit.tele.DeathListener;
 
 public class Tele extends JavaPlugin {
 	private JedisPool pool;
@@ -24,7 +25,7 @@ public class Tele extends JavaPlugin {
 
 	@Override
 	public void onEnable() {
-		this.saveDefaultConfig();
+		saveDefaultConfig();
 
 		String host = config.getString("redis.host");
 		int port = config.getInt("redis.port");
@@ -32,11 +33,13 @@ public class Tele extends JavaPlugin {
 
 		pool = new JedisPool(new GenericObjectPoolConfig(), host, port, 60, auth);
 
-		this.getCommand("go").setExecutor(new GoCommand(this));
-		this.getCommand("go").setTabCompleter(new PlacesCompleter(this, true));
+		getCommand("go").setExecutor(new GoCommand(this));
+		getCommand("go").setTabCompleter(new PlacesCompleter(this, true));
 
-		this.getCommand("set").setExecutor(new SetCommand(this));
-		this.getCommand("set").setTabCompleter(new PlacesCompleter(this, false));
+		getCommand("set").setExecutor(new SetCommand(this));
+		getCommand("set").setTabCompleter(new PlacesCompleter(this, false));
+
+		getServer().getPluginManager().registerEvents(new DeathListener(this), this);
 	}
 
 	@Override
@@ -132,21 +135,25 @@ public class Tele extends JavaPlugin {
 		}
 	}
 
+	public void saveBack(Player p) {
+		try (Jedis jedis = pool.getResource()) {
+			String back = encodeLocation(p.getLocation());
+
+			int expire = config.getInt("back.expire");
+			if (expire > 0) {
+				jedis.setex(buildPath(p, "back"), expire, back);
+			} else {
+				jedis.set(buildPath(p, "back"), back);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			p.sendMessage("Couldn't save \"back\" location");
+		}
+	}
+
 	public void teleport(Player p, Location place) {
 		if (config.getBoolean("back.enabled")) {
-			try (Jedis jedis = pool.getResource()) {
-				String back = encodeLocation(p.getLocation());
-
-				int expire = config.getInt("back.expire");
-				if (expire > 0) {
-					jedis.setex(buildPath(p, "back"), expire, back);
-				} else {
-					jedis.set(buildPath(p, "back"), back);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				p.sendMessage("Couldn't save \"back\" location");
-			}
+			saveBack(p);
 		}
 		p.teleport(place);
 	}

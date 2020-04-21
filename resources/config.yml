@@ -10,4 +10,5 @@ cooldown: 60
 
 back:
   enabled: true
+  save-death: true
   expire: 300
