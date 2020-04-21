@@ -42,7 +42,6 @@ public class GoCommand implements CommandExecutor {
 		Player player = (Player) sender;
 
 		if (cooldownEnabled) {
-			player.sendMessage("cooldown?");
 			Long cooldown = plugin.cooldown(player);
 			if (cooldown > 0) {
 				if (cooldown == Long.MAX_VALUE) {
